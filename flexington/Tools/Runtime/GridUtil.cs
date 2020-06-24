@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
 
@@ -16,7 +17,7 @@ namespace flexington.Tools
         /// Draws a 2D grid.
         /// This grid will be shown in the Editor as well as in game.
         /// </summary>
-        public static void DrawGrid2D(Vector2Int gridSize, Vector2 cellSize)
+        public static void DrawWireframe(Vector2Int gridSize, Vector2 cellSize)
         {
             CreateLineMaterial();
             _lineMaterial.SetPass(0);
@@ -89,5 +90,54 @@ namespace flexington.Tools
 
             GL.End();                                                           // Mark end of Graphics Library call
         }
+
+        /// <summary>
+        /// Returns an array of arrays containing all regions of the given tile type.
+        /// The first array represents the regions, the contained array containes the tiles.
+        /// </summary>
+        public static Vector2Int[][] FloodDetect(int[,] grid, int tileType)
+        {
+            Vector2Int size = new Vector2Int(grid.GetLength(0), grid.GetLength(1));
+            bool[,] seen = new bool[size.x, size.y];
+            List<Vector2Int[]> regions = new List<Vector2Int[]>();
+
+            for (int x = 0; x < size.x; x++)
+            {
+                for (int y = 0; y < size.y; y++)
+                {
+                    if (grid[x, y] != tileType || seen[x, y]) continue;
+
+                    Queue<Vector2Int> queue = new Queue<Vector2Int>();
+                    queue.Enqueue(new Vector2Int(x, y));
+                    seen[x, y] = true;
+                    List<Vector2Int> region = new List<Vector2Int>();
+                    while (queue.Count > 0)
+                    {
+                        Vector2Int position = queue.Dequeue();
+                        region.Add(position);
+                        for (int localX = position.x - 1; localX < position.x + 1; localX++)
+                        {
+                            for (int localY = position.y - 1; localY < position.y + 1; localY++)
+                            {
+                                if (!IsInGrid(grid, localX, localY)) continue;
+                                if (grid[localX, localY] != tileType) continue;
+                                if (position.x != localX || position.y != localY) continue;
+                                if (position.x == localX && position.y == localY) continue;
+                                seen[localX, localY] = true;
+                                queue.Enqueue(new Vector2Int(localX, localY));
+                            }
+                        }
+                    }
+                    regions.Add(region.ToArray());
+                }
+            }
+            return regions.ToArray();
+        }
+
+        private static bool IsInGrid(int[,] grid, int x, int y)
+        {
+            return x >= 0 && x < grid.GetLength(0) && y >= 0 && y < grid.GetLength(1);
+        }
+
     }
 }
