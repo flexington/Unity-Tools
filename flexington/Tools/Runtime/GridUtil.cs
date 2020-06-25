@@ -134,6 +134,37 @@ namespace flexington.Tools
             return regions.ToArray();
         }
 
+        public static Vector2Int[][] FloodDetectBorders(int[,] grid, int tileType, bool diagonal = false)
+        {
+            Vector2Int[][] regions = FloodDetect(grid, tileType);
+            List<Vector2Int[]> borders = new List<Vector2Int[]>();
+
+            for (int i = 0; i < regions.Length; i++)
+            {
+                Vector2Int[] region = regions[i];
+                List<Vector2Int> border = new List<Vector2Int>();
+                for (int j = 0; j < region.Length; j++)
+                {
+                    Vector2Int tile = region[j];
+                    bool isBorder = false;
+                    for (int x = tile.x - 1; x <= tile.x + 1; x++)
+                    {
+                        for (int y = tile.y - 1; y < tile.y + 1; y++)
+                        {
+                            if (!IsInGrid(grid, x, y)) continue;
+                            if (tile.x == x && tile.y == y) continue;
+                            if (!diagonal && (tile.x != x || tile.y != y)) continue;
+
+                            if (grid[x, y] != tileType) isBorder = true;
+                        }
+                    }
+                    if (isBorder) border.Add(tile);
+                }
+                borders.Add(border.ToArray());
+            }
+            return borders.ToArray();
+        }
+
         private static bool IsInGrid(int[,] grid, int x, int y)
         {
             return x >= 0 && x < grid.GetLength(0) && y >= 0 && y < grid.GetLength(1);
