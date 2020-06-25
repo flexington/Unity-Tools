@@ -92,77 +92,78 @@ namespace flexington.Tools
         }
 
         /// <summary>
-        /// Returns an array of arrays containing all regions of the given tile type.
-        /// The first array represents the regions, the contained array containes the tiles.
+        /// Returns all regions for the given tile type
         /// </summary>
-        public static Vector2Int[][] FloodDetect(int[,] grid, int tileType)
+        public static Vector2Int[][] GetRegions(int[,] grid, int tileType)
         {
             Vector2Int size = new Vector2Int(grid.GetLength(0), grid.GetLength(1));
-            bool[,] seen = new bool[size.x, size.y];
             List<Vector2Int[]> regions = new List<Vector2Int[]>();
-
+            bool[,] seen = new bool[size.x, size.y];
             for (int x = 0; x < size.x; x++)
             {
                 for (int y = 0; y < size.y; y++)
                 {
-                    if (grid[x, y] != tileType || seen[x, y]) continue;
-
-                    Queue<Vector2Int> queue = new Queue<Vector2Int>();
-                    queue.Enqueue(new Vector2Int(x, y));
-                    seen[x, y] = true;
-                    List<Vector2Int> region = new List<Vector2Int>();
-                    while (queue.Count > 0)
-                    {
-                        Vector2Int position = queue.Dequeue();
-                        region.Add(position);
-                        for (int localX = position.x - 1; localX < position.x + 1; localX++)
-                        {
-                            for (int localY = position.y - 1; localY < position.y + 1; localY++)
-                            {
-                                if (!IsInGrid(grid, localX, localY)) continue;
-                                if (grid[localX, localY] != tileType) continue;
-                                if (position.x != localX || position.y != localY) continue;
-                                if (position.x == localX && position.y == localY) continue;
-                                seen[localX, localY] = true;
-                                queue.Enqueue(new Vector2Int(localX, localY));
-                            }
-                        }
-                    }
-                    regions.Add(region.ToArray());
+                    if (seen[x, y] || grid[x, y] != tileType) continue;
+                    regions.Add(GetRegion(grid, x, y, ref seen));
                 }
             }
             return regions.ToArray();
         }
 
-        public static Vector2Int[][] FloodDetectBorders(int[,] grid, int tileType, bool diagonal = false)
+        /// <summary>
+        /// Get the region the given position belongs to
+        /// </summary>
+        private static Vector2Int[] GetRegion(int[,] grid, int startX, int startY, ref bool[,] seen)
         {
-            Vector2Int[][] regions = FloodDetect(grid, tileType);
-            List<Vector2Int[]> borders = new List<Vector2Int[]>();
+            List<Vector2Int> region = new List<Vector2Int>();
+            int tileType = grid[startX, startY];
 
-            for (int i = 0; i < regions.Length; i++)
+            Queue<Vector2Int> queue = new Queue<Vector2Int>();
+            queue.Enqueue(new Vector2Int(startX, startY));
+            seen[startX, startY] = true;
+
+            while (queue.Count > 0)
             {
-                Vector2Int[] region = regions[i];
-                List<Vector2Int> border = new List<Vector2Int>();
-                for (int j = 0; j < region.Length; j++)
-                {
-                    Vector2Int tile = region[j];
-                    bool isBorder = false;
-                    for (int x = tile.x - 1; x <= tile.x + 1; x++)
-                    {
-                        for (int y = tile.y - 1; y < tile.y + 1; y++)
-                        {
-                            if (!IsInGrid(grid, x, y)) continue;
-                            if (tile.x == x && tile.y == y) continue;
-                            if (!diagonal && (tile.x != x || tile.y != y)) continue;
+                Vector2Int tile = queue.Dequeue();
+                region.Add(tile);
 
-                            if (grid[x, y] != tileType) isBorder = true;
+                for (int x = tile.x - 1; x <= tile.x + 1; x++)
+                {
+                    for (int y = tile.y - 1; y <= tile.y + 1; y++)
+                    {
+                        if (!IsInGrid(grid, x, y) || (x != tile.x && y != tile.y)) continue;
+                        if (seen[x, y] || grid[x, y] != tileType) continue;
+                        seen[x, y] = true;
+                        queue.Enqueue(new Vector2Int(x, y));
+                    }
+                }
+            }
+            return region.ToArray();
+        }
+
+        /// <summary>
+        /// Returns the border tiles of the given region.
+        /// </summary>
+        public static Vector2Int[] GetRegionBorder(int[,] grid, Vector2Int[] region)
+        {
+            List<Vector2Int> result = new List<Vector2Int>();
+
+            for (int i = 0; i < region.Length; i++)
+            {
+                Vector2Int tile = region[i];
+                for (int x = tile.x - 1; x <= tile.x + 1; x++)
+                {
+                    for (int y = tile.y - 1; y <= tile.y + 1; y++)
+                    {
+                        if (IsInGrid(grid, x, y) && (x == tile.x || y == tile.y) && grid[x, y] == 1)
+                        {
+                            result.Add(tile);
                         }
                     }
-                    if (isBorder) border.Add(tile);
                 }
-                borders.Add(border.ToArray());
             }
-            return borders.ToArray();
+
+            return result.ToArray();
         }
 
         private static bool IsInGrid(int[,] grid, int x, int y)
