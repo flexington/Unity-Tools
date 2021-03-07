@@ -144,9 +144,12 @@ namespace flexington.Tools
         /// <summary>
         /// Returns the border tiles of the given region.
         /// </summary>
-        public static Vector2Int[] GetRegionBorder(int[,] grid, Vector2Int[] region)
+        public static Vector2Int[] GetRegionBorder(int[,] grid, Vector2Int[] region, bool diagonal = false)
         {
             List<Vector2Int> result = new List<Vector2Int>();
+
+            Vector2Int position = region[0];
+            int tileType = grid[position.x, position.y];
 
             for (int i = 0; i < region.Length; i++)
             {
@@ -155,14 +158,13 @@ namespace flexington.Tools
                 {
                     for (int y = tile.y - 1; y <= tile.y + 1; y++)
                     {
-                        if (IsInGrid(grid, x, y) && (x == tile.x || y == tile.y) && grid[x, y] == 1)
-                        {
-                            result.Add(tile);
-                        }
+                        if (!IsInGrid(grid, x, y)) continue;
+                        if ((x != tile.x && y != tile.y) && !diagonal) continue;
+                        if (grid[x, y] == tileType) continue;
+                        result.Add(tile);
                     }
                 }
             }
-
             return result.ToArray();
         }
 
